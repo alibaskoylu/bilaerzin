@@ -1,5 +1,20 @@
 import { supabase } from './supabase.js';
 
+
+
+// --- Türkçe harf duyarsızlaştırma ---
+function normalizeText(str) {
+  return String(str || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g,'i')
+    .replace(/İ/g,'i')
+    .replace(/ş/g,'s').replace(/Ş/g,'s')
+    .replace(/ğ/g,'g').replace(/Ğ/g,'g')
+    .replace(/ü/g,'u').replace(/Ü/g,'u')
+    .replace(/ö/g,'o').replace(/Ö/g,'o')
+    .replace(/ç/g,'c').replace(/Ç/g,'c');
+}
+
 let allData = { cats: [], prods: [] };
 let searchText = '';
 
@@ -157,8 +172,8 @@ async function fetchData() {
 
 function matchesSearch(p) {
   if (!searchText) return true;
-  const s = searchText.toLowerCase();
-  return [p.name, p.subtitle, p.description].some(x => (x || '').toLowerCase().includes(s));
+  const s = normalizeText(searchText);
+  return [p.name, p.subtitle, p.description].some(x => normalizeText(x).includes(s));
 }
 
 /* -----------------------
@@ -275,47 +290,4 @@ function ensureSingleSearch() {
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchData();
   ensureSingleSearch();
-});
-
-
-// --- TÜRKÇE HARF DUYARSIZ ARAMA FONKSİYONU ---
-function normalizeText(str) {
-  return str
-    .toLocaleLowerCase('tr-TR')
-    .replace(/ı/g, 'i')
-    .replace(/ş/g, 's')
-    .replace(/ğ/g, 'g')
-    .replace(/ü/g, 'u')
-    .replace(/ö/g, 'o')
-    .replace(/ç/g, 'c');
-}
-
-// Arama fonksiyonunu Türkçe uyumlu hale getir
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.querySelector(".search-box input");
-  if (!input) return;
-  input.addEventListener("input", () => {
-    const value = normalizeText(input.value.trim());
-    const cats = document.querySelectorAll(".kategori");
-    cats.forEach(cat => {
-      const header = cat.querySelector(".kategori-header");
-      const products = cat.querySelectorAll(".urun");
-      let found = false;
-      products.forEach(prod => {
-        const name = normalizeText(prod.textContent);
-        const match = name.includes(value);
-        prod.style.display = match ? "block" : "none";
-        if (match) found = true;
-      });
-      const list = cat.querySelector(".urunler");
-      const ok = cat.querySelector(".ok");
-      if (found) {
-        if (list.style.display === "none") header?.click();
-        ok?.classList.add("don");
-      } else {
-        if (list.style.display !== "none") header?.click();
-        ok?.classList.remove("don");
-      }
-    });
-  });
 });
