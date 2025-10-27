@@ -186,7 +186,16 @@ function renderAll() {
 
     const items = allData.prods.filter(p => p.category_id === cat.id && matchesSearch(p));
 
-    // Arrow color by availability
+    
+    // --- Auto-open category if searching & there are matches ---
+    if (typeof searchText === 'string' && searchText.trim() !== '' && items.length > 0) {
+      grid.style.display = 'grid';
+      try { okSpan.classList.add('don'); } catch(e){}
+    } else {
+      // keep default closed state when no search or no matches
+      // grid.style.display stays 'none'
+    }
+// Arrow color by availability
     okSpan.style.color = items.length > 0 ? '#2e7d32' : '#c62828';
 
     if (items.length === 0) {
@@ -268,40 +277,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   ensureSingleSearch();
 });
 
-// --- KATEGORİLERİN ARAMA SONUCUNA GÖRE OTOMATİK AÇILMASI ---
-function toggleCategoriesBySearch() {
-  const input = document.querySelector('.search-box input');
-  if (!input) return;
-  const searchValue = input.value.trim().toLowerCase();
 
-  const allCategories = document.querySelectorAll('.kategori');
-  allCategories.forEach(cat => {
-    const products = cat.querySelectorAll('.urun');
-    let hasMatch = false;
-
-    products.forEach(prod => {
-      const text = prod.textContent.toLowerCase();
-      const match = text.includes(searchValue);
-      prod.style.display = match ? 'block' : 'none';
-      if (match) hasMatch = true;
-    });
-
-    const urunler = cat.querySelector('.urunler');
-    if (urunler) {
-      urunler.style.display = hasMatch ? 'grid' : 'none';
-    }
-
-    const ok = cat.querySelector('.ok');
-    if (ok) {
-      if (hasMatch) ok.classList.add('don');
-      else ok.classList.remove('don');
-    }
-  });
+// --- TÜRKÇE HARF DUYARSIZ ARAMA FONKSİYONU ---
+function normalizeText(str) {
+  return str
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i')
+    .replace(/ş/g, 's')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.querySelector('.search-box input');
-  if (input) {
-    input.addEventListener('input', toggleCategoriesBySearch);
-  }
+// Arama fonksiyonunu Türkçe uyumlu hale getir
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.querySelector(".search-box input");
+  if (!input) return;
+  input.addEventListener("input", () => {
+    const value = normalizeText(input.value.trim());
+    const cats = document.querySelectorAll(".kategori");
+    cats.forEach(cat => {
+      const header = cat.querySelector(".kategori-header");
+      const products = cat.querySelectorAll(".urun");
+      let found = false;
+      products.forEach(prod => {
+        const name = normalizeText(prod.textContent);
+        const match = name.includes(value);
+        prod.style.display = match ? "block" : "none";
+        if (match) found = true;
+      });
+      const list = cat.querySelector(".urunler");
+      const ok = cat.querySelector(".ok");
+      if (found) {
+        if (list.style.display === "none") header?.click();
+        ok?.classList.add("don");
+      } else {
+        if (list.style.display !== "none") header?.click();
+        ok?.classList.remove("don");
+      }
+    });
+  });
 });
